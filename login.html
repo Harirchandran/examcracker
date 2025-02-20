@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Student Progress Login</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Exam cracker</title>
+  <!-- Colorful and Funny Theme Styles -->
   <style>
-    /* Colorful and Funny Theme Styles */
     body {
       background-color: #f0f8ff;
       font-family: 'Comic Sans MS', cursive, sans-serif;
@@ -61,11 +61,32 @@
       display: none;
       margin-top: 20px;
     }
+    /* Timer container styling */
+    #timerContainer {
+      margin-bottom: 20px;
+    }
+    /* Big, red, tension-inducing timer */
+    #countdownTimer {
+      font-size: 2em;
+      color: red;
+      font-weight: bold;
+    }
+    #examNote {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Student Progress Login</h1>
+    <!-- Countdown Timer -->
+    <div id="timerContainer">
+      <p id="countdownTimer">Loading timer...</p>
+      <p id="examNote">Note: Assuming March 3rd week is the exam.</p>
+    </div>
+
+    <h1>Exam cracker login</h1>
     <!-- Login Form -->
     <form id="loginForm">
       <input type="text" id="roll" placeholder="Enter Roll Number" required>
@@ -92,18 +113,45 @@
   <!-- Include Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script>
-    // Supabase configuration
+    // Replace these with your actual Supabase URL and API key
     const SUPABASE_URL = 'https://jxsurwtcxvznuqlgnxis.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4c3Vyd3RjeHZ6bnVxbGdueGlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NDA3MjIsImV4cCI6MjA1NTIxNjcyMn0.vSYd0BZK3OgbPvxT1n0uwc_o0xyTuVp1IqdiBtdTdQA';
-    // Rename client variable to avoid conflict with global 'supabase'
+    // Rename client variable to avoid conflict with the global 'supabase'
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Countdown Timer Functionality
+    function updateTimer() {
+      // Target: March 11, 2025, 00:00:00
+      const examDate = new Date("March 11, 2025 00:00:00").getTime();
+      const now = new Date().getTime();
+      const timeRemaining = examDate - now;
+      
+      if (timeRemaining < 0) {
+        document.getElementById("countdownTimer").textContent = "Exam time is over!";
+        clearInterval(timerInterval);
+        return;
+      }
+
+      // Calculate total hours, plus minutes and seconds
+      const totalHours = Math.floor(timeRemaining / (1000 * 60 * 60));
+      const minutes = Math.floor((timeRemaining / (1000 * 60)) % 60);
+      const seconds = Math.floor((timeRemaining / 1000) % 60);
+      
+      // Display format: "Time remaining: X hours, Y min, Z sec"
+      document.getElementById("countdownTimer").textContent = 
+        "Time remaining for exm: " + totalHours + "h " + minutes + "m " + seconds + "s";
+    }
+
+    // Update every second
+    const timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
 
     // Auto-fill the login form from local storage
     window.onload = function() {
       const storedRoll = localStorage.getItem('roll');
       const storedPassword = localStorage.getItem('password');
-      if(storedRoll) document.getElementById('roll').value = storedRoll;
-      if(storedPassword) document.getElementById('password').value = storedPassword;
+      if (storedRoll) document.getElementById('roll').value = storedRoll;
+      if (storedPassword) document.getElementById('password').value = storedPassword;
     };
 
     // Handle Login Form Submission
@@ -114,7 +162,7 @@
       const roll = document.getElementById('roll').value.trim();
       const password = document.getElementById('password').value.trim();
 
-      if(!roll || !password) {
+      if (!roll || !password) {
         alert('Please fill in both fields.');
         document.getElementById('loginSpinner').style.display = 'none';
         return;
@@ -122,14 +170,14 @@
       
       try {
         // Check credentials against the 'students' table in Supabase
-        let { data, error } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('students')
           .select('*')
           .eq('roll', roll)
           .eq('passkey', password)
           .single();
 
-        if(error || !data) {
+        if (error || !data) {
           alert('Invalid roll number or password.');
           console.error('Login error:', error);
           document.getElementById('loginSpinner').style.display = 'none';
@@ -165,13 +213,13 @@
       const newPassword = document.getElementById('newPassword').value.trim();
       const confirmNewPassword = document.getElementById('confirmNewPassword').value.trim();
       
-      if(!roll || !oldPassword || !newPassword || !confirmNewPassword) {
+      if (!roll || !oldPassword || !newPassword || !confirmNewPassword) {
         alert('Please fill in all fields.');
         document.getElementById('changeSpinner').style.display = 'none';
         return;
       }
       
-      if(newPassword !== confirmNewPassword) {
+      if (newPassword !== confirmNewPassword) {
         alert('New passwords do not match.');
         document.getElementById('changeSpinner').style.display = 'none';
         return;
@@ -179,26 +227,26 @@
       
       try {
         // Verify the roll number and old password
-        let { data, error } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('students')
           .select('*')
           .eq('roll', roll)
           .eq('passkey', oldPassword)
           .single();
 
-        if(error || !data) {
+        if (error || !data) {
           alert('Invalid roll number or old password.');
           console.error('Verification error:', error);
           document.getElementById('changeSpinner').style.display = 'none';
           return;
         } else {
           // Update the password in the Supabase table
-          let { data: updateData, error: updateError } = await supabaseClient
+          const { error: updateError } = await supabaseClient
             .from('students')
             .update({ passkey: newPassword })
             .eq('roll', roll);
 
-          if(updateError) {
+          if (updateError) {
             alert('Error updating password.');
             console.error('Update error:', updateError);
           } else {
