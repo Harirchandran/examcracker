@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Student Dashboard</title>
+  <style>
+    /* Overall playful theme */
+    body {
+      background-color: #f0f8ff;
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #ffefd5;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      color: #ff4500;
+    }
+    .subject-card {
+      background: #fff8dc;
+      border: 2px solid #ff4500;
+      border-radius: 10px;
+      margin: 10px;
+      padding: 15px;
+    }
+    .subject-card h2 {
+      margin: 0;
+    }
+    button {
+      padding: 8px 16px;
+      background-color: #ff4500;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #ff6347;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #ff4500;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Overlay for topics view */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+    .overlay-content {
+      background-color: #ffefd5;
+      padding: 20px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 600px;
+      text-align: left;
+      max-height: 90%;
+      overflow-y: auto;
+    }
+    .module {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ff4500;
+      border-radius: 5px;
+      background-color: #fff8dc;
+    }
+    .module h3 {
+      margin: 5px 0;
+    }
+    .topic-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px;
+      border-bottom: 1px solid #ddd;
+    }
+    .topic-item label {
+      flex: 1;
+      margin-left: 10px;
+    }
+    .back-btn {
+      background-color: #008080;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="welcomeMsg">Welcome, Student!</h1>
+    <div id="subjectsContainer">
+      <!-- Subject cards will be inserted here -->
+      <span id="subjectsSpinner" class="spinner"></span>
+    </div>
+  </div>
+
+  <!-- Overlay for topics view -->
+  <div id="topicsOverlay" class="overlay">
+    <div class="overlay-content">
+      <button id="backButton" class="back-btn">Back to Subjects</button>
+      <div id="topicsContainer">
+        <!-- Topics grouped by modules will be loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Include Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <script>
+    // Supabase configuration (replace with your actual values)
+    const SUPABASE_URL = 'https://jxsurwtcxvznuqlgnxis.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4c3Vyd3RjeHZ6bnVxbGdueGlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NDA3MjIsImV4cCI6MjA1NTIxNjcyMn0.vSYd0BZK3OgbPvxT1n0uwc_o0xyTuVp1IqdiBtdTdQA';
+   
+    // Rename client variable to avoid conflict with global 'supabase'
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Retrieve student roll from local storage (set during login)
+    const studentRoll = localStorage.getItem('roll');
+    if (!studentRoll) {
+      alert('No student logged in! Redirecting to login page.');
+      window.location.href = 'index.html'; // Adjust path to your login page as needed
+    }
+
+    // Optionally fetch student name from the "students" table
+    async function fetchStudentName() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('students')
+          .select('name')
+          .eq('roll', studentRoll)
+          .single();
+        if (error || !data) {
+          console.error('Error fetching student name:', error);
+          return studentRoll;
+        }
+        return data.name;
+      } catch (err) {
+        console.error('Exception fetching student name:', err);
+        return studentRoll;
+      }
+    }
+
+    // Set welcome message
+    fetchStudentName().then(name => {
+      document.getElementById('welcomeMsg').textContent = 'Welcome, ' + name + '!';
+    });
+
+    // Load subjects and compute overall progress for each subject
+    async function loadSubjects() {
+      try {
+        const { data: subjects, error: subError } = await supabaseClient
+          .from('subjects')
+          .select('*');
+        if (subError) throw subError;
+        const subjectsContainer = document.getElementById('subjectsContainer');
+        subjectsContainer.innerHTML = '';
+        for (let subject of subjects) {
+          // Fetch all topics for the current subject
+          const { data: topics, error: topicsError } = await supabaseClient
+            .from('subject_topics')
+            .select('*')
+            .eq('subject_id', subject.subject_id);
+          if (topicsError) throw topicsError;
+          
+          // Compute overall subject completion percentage based on topics that are marked complete
+          let subjectCompleted = 0;
+          topics.forEach(topic => {
+            if (topic.roll_data && topic.roll_data[studentRoll] === true) {
+              subjectCompleted += Number(topic.percentage) || 0;
+            }
+          });
+          // Create a card for each subject
+          let card = document.createElement('div');
+          card.className = 'subject-card';
+          card.innerHTML = `
+            <h2>${subject.subject_name}</h2>
+            <p>Completion: ${subjectCompleted}%</p>
+            <button data-subject-id="${subject.subject_id}" data-subject-name="${subject.subject_name}">See Topics</button>
+          `;
+          // Attach click event for "See Topics"
+          card.querySelector('button').addEventListener('click', function() {
+            const subId = this.getAttribute('data-subject-id');
+            const subName = this.getAttribute('data-subject-name');
+            openTopicsOverlay(subId, subName);
+          });
+          subjectsContainer.appendChild(card);
+        }
+      } catch(err) {
+        console.error('Error loading subjects:', err);
+        alert('Error loading subjects.');
+      } finally {
+        document.getElementById('subjectsSpinner').style.display = 'none';
+      }
+    }
+
+    // Load subjects when the dashboard page loads
+    loadSubjects();
+
+    // Opens an overlay that displays topics for a given subject grouped by module.
+    async function openTopicsOverlay(subjectId, subjectName) {
+      const topicsContainerDiv = document.getElementById('topicsContainer');
+      // Display a spinner while topics are being fetched
+      topicsContainerDiv.innerHTML = `<span class="spinner"></span>`;
+      document.getElementById('topicsOverlay').style.display = 'flex';
+
+      try {
+        // Fetch topics for the selected subject
+        const { data: topics, error } = await supabaseClient
+          .from('subject_topics')
+          .select('*')
+          .eq('subject_id', subjectId);
+        if (error) throw error;
+        
+        // Group topics by module_number
+        const modules = {};
+        topics.forEach(topic => {
+          if (!modules[topic.module_number]) {
+            modules[topic.module_number] = [];
+          }
+          modules[topic.module_number].push(topic);
+        });
+        
+        // Build the overlay content with modules and topics
+        let contentHTML = `<h2>${subjectName} Topics</h2>`;
+        for (let module in modules) {
+          // Compute module completion percentage based on topics completed in that module
+          let moduleCompleted = 0;
+          modules[module].forEach(topic => {
+            if (topic.roll_data && topic.roll_data[studentRoll] === true) {
+              moduleCompleted += Number(topic.percentage) || 0;
+            }
+          });
+          contentHTML += `<div class="module">
+              <h3>Module ${module} - Completion: ${moduleCompleted}%</h3>`;
+          modules[module].forEach(topic => {
+            const isChecked = (topic.roll_data && topic.roll_data[studentRoll] === true) ? 'checked' : '';
+            contentHTML += `
+              <div class="topic-item" data-topic-id="${topic.topic_id}">
+                <input type="checkbox" ${isChecked} data-percentage="${topic.percentage}">
+                <label>${topic.topic_name}</label>
+              </div>
+            `;
+          });
+          contentHTML += `</div>`;
+        }
+        topicsContainerDiv.innerHTML = contentHTML;
+        // Attach event listeners for each topic checkbox to update the status in real time.
+        document.querySelectorAll('.topic-item input[type="checkbox"]').forEach(checkbox => {
+          checkbox.addEventListener('change', async function() {
+            const topicDiv = this.closest('.topic-item');
+            const topicId = topicDiv.getAttribute('data-topic-id');
+            const newStatus = this.checked;
+            // Insert a small spinner next to the checkbox during the update
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            spinner.style.width = '16px';
+            spinner.style.height = '16px';
+            this.parentNode.insertBefore(spinner, this.nextSibling);
+            
+            try {
+              // Retrieve the current roll_data for this topic
+              const { data: topicData, error: fetchError } = await supabaseClient
+                .from('subject_topics')
+                .select('roll_data')
+                .eq('topic_id', topicId)
+                .single();
+              if (fetchError) throw fetchError;
+              let rollData = topicData.roll_data || {};
+              // Update the student's status in the roll_data JSON
+              rollData[studentRoll] = newStatus;
+              // Update the record in Supabase
+              const { error: updateError } = await supabaseClient
+                .from('subject_topics')
+                .update({ roll_data: rollData })
+                .eq('topic_id', topicId);
+              if (updateError) throw updateError;
+            } catch (err) {
+              console.error('Error updating topic status:', err);
+              alert('Error updating topic status.');
+              // Revert the checkbox if there is an error
+              this.checked = !newStatus;
+            } finally {
+              spinner.remove();
+              // Refresh both the subjects dashboard and the overlay to reflect updated percentages
+              loadSubjects();
+              openTopicsOverlay(subjectId, subjectName);
+            }
+          });
+        });
+      } catch(err) {
+        console.error('Error loading topics:', err);
+        topicsContainerDiv.innerHTML = 'Error loading topics.';
+      }
+    }
+
+    // Back button event to close the overlay and return to the subjects view.
+    document.getElementById('backButton').addEventListener('click', () => {
+      document.getElementById('topicsOverlay').style.display = 'none';
+      loadSubjects();
+    });
+  </script>
+</body>
+</html>
