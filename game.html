@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Game - Tower Blocks</title>
+  
+  <!-- Required libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r83/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
+  
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  
+  <!-- Link to your game CSS (same as before) -->
+  <link rel="stylesheet" href="gamestyle.css" />
+  
+  <!-- Additional CSS for mini scoreboard & overlay -->
+  <style>
+    /* Mini scoreboard container in top right */
+    #miniRanking {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 10px;
+      font-size: 1rem;
+      text-align: center;
+      z-index: 2000;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      border-radius: 5px;
+    }
+    #miniRanking table {
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    #miniRanking th,
+    #miniRanking td {
+      border: 1px solid #334;
+      padding: 5px 8px;
+    }
+    #miniRanking th {
+      background-color: #ffefd5;
+    }
+    #miniRanking button {
+      margin-top: 5px;
+      background: #ff4500;
+      border: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 3px;
+    }
+
+    /* Full scoreboard overlay */
+    #fullScoreOverlay {
+      position: fixed;
+      display: none; /* hidden by default */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 3000;
+      justify-content: center;
+      align-items: center;
+    }
+    #fullScoreOverlayContent {
+      background: #fff;
+      border-radius: 5px;
+      width: 90%;
+      max-width: 600px;
+      padding: 20px;
+      margin: 0 auto;
+      text-align: center;
+      max-height: 90%;
+      overflow-y: auto;
+    }
+    #fullScoreOverlay table {
+      margin: 0 auto;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    #fullScoreOverlay th,
+    #fullScoreOverlay td {
+      border: 1px solid #334;
+      padding: 5px 8px;
+    }
+    #fullScoreOverlay th {
+      background-color: #ffefd5;
+    }
+    #fullScoreOverlay button {
+      margin-top: 10px;
+      background: #ff4500;
+      border: none;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 3px;
+    }
+
+    /* Adjust the main score on top for mobile if needed */
+    @media (max-width: 600px) {
+      #miniRanking {
+        top: 5px;
+        right: 5px;
+        font-size: 0.85rem;
+      }
+    }
+
+    /* Overwrite the game-over styling to remove paragraphs and only show a dynamic message */
+    .game-over h2 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    .game-over p {
+      display: none; /* hide the default paragraphs */
+    }
+  </style>
+  
+  <script>
+    // Initialize Supabase
+    const SUPABASE_URL = 'https://jxsurwtcxvznuqlgnxis.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4c3Vyd3RjeHZ6bnVxbGdueGlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NDA3MjIsImV4cCI6MjA1NTIxNjcyMn0.vSYd0BZK3OgbPvxT1n0uwc_o0xyTuVp1IqdiBtdTdQA';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Retrieve the logged-in student's roll from localStorage.
+    const studentRoll = localStorage.getItem('roll') || "";
+    let studentName = "";
+
+    // We store a global scoreboard array to compute rank, show mini scoreboard, etc.
+    let globalScoreboardData = [];
+
+    // Fetch the student's name from the "students" table.
+    async function fetchStudentName() {
+      if (!studentRoll) {
+        console.warn("No studentRoll found in localStorage.");
+        return;
+      }
+      try {
+        const { data, error } = await supabaseClient
+          .from('students')
+          .select('name')
+          .eq('roll', studentRoll)
+          .single();
+        if (error || !data) {
+          console.error("Error fetching student name:", error);
+          studentName = studentRoll || "Unknown";
+        } else {
+          studentName = data.name;
+          console.log("Fetched student name:", studentName);
+        }
+      } catch (err) {
+        console.error("Exception in fetchStudentName:", err);
+        studentName = studentRoll || "Unknown";
+      }
+    }
+    fetchStudentName();
+
+    // -------------
+    //  MINI BOARD
+    // -------------
+    // Called frequently to show top 3 in #miniRanking
+    async function updateMiniRanking() {
+      try {
+        // Always fetch top 3 for mini scoreboard
+        const { data, error } = await supabaseClient
+          .from('game_rank')
+          .select('roll, name, score')
+          .order('score', { ascending: false })
+          .limit(3);
+        if (error) {
+          console.error("Error fetching mini ranking data:", error);
+          return;
+        }
+        let miniHTML = '<table><tr><th>#</th><th>Name</th><th>Score</th></tr>';
+        if (data && data.length > 0) {
+          data.forEach((entry, index) => {
+            miniHTML += `<tr>
+              <td>${index + 1}</td>
+              <td>${entry.name}</td>
+              <td>${entry.score}</td>
+            </tr>`;
+          });
+          miniHTML += '</table>';
+        } else {
+          miniHTML = "<p>No ranking entries yet.</p>";
+        }
+        // Add a "View Full Scoreboard" button
+        miniHTML += '<br><button onclick="showFullScoreboard()">View Full Scoreboard</button>';
+        document.getElementById('miniRanking').innerHTML = miniHTML;
+      } catch (err) {
+        console.error("Exception in updateMiniRanking:", err);
+      }
+    }
+
+    // -------------
+    // FULL BOARD
+    // -------------
+    // Show an overlay with all scoreboard data
+    async function showFullScoreboard() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('game_rank')
+          .select('roll, name, score')
+          .order('score', { ascending: false });
+        if (error) {
+          console.error("Error fetching full scoreboard data:", error);
+          return;
+        }
+        globalScoreboardData = data || [];
+        let fullHTML = '<table><tr><th>#</th><th>Name</th><th>Roll</th><th>Score</th></tr>';
+        globalScoreboardData.forEach((entry, index) => {
+          fullHTML += `<tr>
+            <td>${index + 1}</td>
+            <td>${entry.name}</td>
+            <td>${entry.roll}</td>
+            <td>${entry.score}</td>
+          </tr>`;
+        });
+        fullHTML += '</table>';
+        fullHTML += '<button onclick="hideFullScoreboard()">Back to Game</button>';
+        document.getElementById('fullScoreOverlayContent').innerHTML = fullHTML;
+        document.getElementById('fullScoreOverlay').style.display = 'flex';
+      } catch (err) {
+        console.error("Exception in showFullScoreboard:", err);
+      }
+    }
+
+    function hideFullScoreboard() {
+      document.getElementById('fullScoreOverlay').style.display = 'none';
+    }
+
+    // -------------
+    // GET RANK
+    // -------------
+    // Called after the player's final score is upserted, to find their rank in the scoreboard
+    async function getPlayerRank(roll) {
+      try {
+        // fetch entire scoreboard
+        const { data, error } = await supabaseClient
+          .from('game_rank')
+          .select('roll, name, score')
+          .order('score', { ascending: false });
+        if (error) {
+          console.error("Error fetching data for rank calculation:", error);
+          return null;
+        }
+        if (!data || data.length === 0) return null;
+        // find the index of the user
+        const index = data.findIndex(item => item.roll === roll);
+        if (index === -1) return null;
+        return index + 1; // rank is index + 1
+      } catch (err) {
+        console.error("Exception in getPlayerRank:", err);
+        return null;
+      }
+    }
+
+    // -------------
+    // UPSERT SCORE
+    // -------------
+    async function updateGameRank(score) {
+      console.log('updateGameRank called with score:', score);
+      if (!studentRoll) {
+        console.warn("No studentRoll found, skipping upsert.");
+        return;
+      }
+      // Ensure we have the student's name
+      if (!studentName) {
+        await fetchStudentName();
+      }
+      try {
+        const { data, error } = await supabaseClient
+          .from('game_rank')
+          .upsert([{ roll: studentRoll, name: studentName || studentRoll, score }], { onConflict: 'roll' });
+        if (error) {
+          console.error('Error updating game rank:', error);
+        } else {
+          console.log('Upsert successful. Returned data:', data);
+          // Refresh the mini scoreboard
+          updateMiniRanking();
+          // Calculate the player's rank
+          const rank = await getPlayerRank(studentRoll);
+          console.log("Player's rank is:", rank);
+          // Show a message under "Game Over"
+          const gameOverMessage = document.querySelector('.game-over h2');
+          if (rank !== null) {
+            gameOverMessage.textContent = `Congratulations, you got rank #${rank}. Tap to play again!`;
+          } else {
+            gameOverMessage.textContent = `Congratulations, tap to play again!`;
+          }
+        }
+      } catch (err) {
+        console.error("Exception in updateGameRank:", err);
+      }
+    }
+
+    // Update mini ranking every 5 seconds
+    setInterval(updateMiniRanking, 10000);
+    window.addEventListener('load', updateMiniRanking);
+  </script>
+</head>
+<body>
+  <!-- Mini scoreboard in top right (only top 3) -->
+  <div id="miniRanking"></div>
+
+  <!-- Full scoreboard overlay -->
+  <div id="fullScoreOverlay">
+    <div id="fullScoreOverlayContent"></div>
+  </div>
+  
+  <!-- Main game container -->
+  <div id="container">
+    <div id="game"></div>
+    <div id="score">0</div>
+    <div id="instructions">Click (or press the spacebar) to place the block</div>
+    <!-- Game Over container: only a dynamic <h2> message is shown -->
+    <div class="game-over">
+      <h2>Game Over</h2>
+    </div>
+    <div class="game-ready">
+      <div id="start-button">Start</div>
+    </div>
+  </div>
+  
+  <!-- Include the main game script (the code you shared) -->
+  <script src="gamescript.js"></script>
+  
+  <!-- Override Game.prototype.endGame to update rank on failure -->
+  <script>
+    (function() {
+      const originalEndGame = Game.prototype.endGame;
+      Game.prototype.endGame = function() {
+        originalEndGame.apply(this);
+        const score = this.blocks.length - 1;
+        console.log("Game over. Score:", score);
+        // Slight delay to ensure game state is settled
+        setTimeout(() => {
+          updateGameRank(score);
+        }, 200);
+      }
+    })();
+  </script>
+</body>
+</html>
