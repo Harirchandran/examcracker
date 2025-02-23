@@ -87,6 +87,7 @@
     </div>
 
     <h1>Exam cracker login</h1>
+    
     <!-- Login Form -->
     <form id="loginForm">
       <input type="text" id="roll" placeholder="Enter Roll Number" required>
@@ -182,11 +183,12 @@
           console.error('Login error:', error);
           document.getElementById('loginSpinner').style.display = 'none';
           return;
-        } else {
+        } 
+        else {
           // Save credentials to local storage
           localStorage.setItem('roll', roll);
           localStorage.setItem('password', password);
-          alert('Login successful! Redirecting to dashboard...');
+          alert('Login successful!');
           // Redirect to the dashboard page (ensure dashboard.html exists)
           window.location.href = 'dashboard.html';
         }
@@ -235,7 +237,7 @@
           .single();
 
         if (error || !data) {
-          alert('Invalid roll number or old password.');
+          alert('Minding my own business is better than helping those who dont even care.🤐 Dm to Hari to continue using the service..');
           console.error('Verification error:', error);
           document.getElementById('changeSpinner').style.display = 'none';
           return;
