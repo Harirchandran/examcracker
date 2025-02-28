@@ -522,7 +522,7 @@ body.dark-mode .loading-overlay {
           const newestId = logs[0].id;
           if (lastDetectionId > 0 && newestId > lastDetectionId) {
             showShortMessage("New detection alert!", "error");
-            if (navigator.vibrate) navigator.vibrate(200);
+            if (navigator.vibrate) navigator.vibrate(500);
             if (document.getElementById('toggleNotifications') && document.getElementById('toggleNotifications').checked) {
               if (Notification.permission === "granted") {
                 new Notification("Detection Alert", { body: "Warning: New detection alert!" });
@@ -623,7 +623,7 @@ body.dark-mode .loading-overlay {
         if (document.getElementById('viewLogs') && !document.getElementById('viewLogs').classList.contains('hidden')) {
           fetchLogs();
         }
-      }, 10000);
+      }, 5000);
     }
     function stopLogsAutoRefresh() {
       if (logsIntervalID) clearInterval(logsIntervalID);
