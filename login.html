@@ -55,9 +55,7 @@
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
-    .hidden {
-      display: none;
-    }
+    .hidden { display: none; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -71,21 +69,9 @@
       text-align: left;
       font-size: 0.9em;
     }
-    .form-group {
-      margin-bottom: 1em;
-    }
-    label {
-      display: block;
-      margin-bottom: 0.5em;
-      font-weight: bold;
-    }
-    input, select {
-      width: 100%;
-      padding: 0.5em;
-      font-size: 1em;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
+    .form-group { margin-bottom: 1em; }
+    label { display: block; margin-bottom: 0.5em; font-weight: bold; }
+    input, select { width: 100%; padding: 0.5em; font-size: 1em; border: 1px solid #ccc; border-radius: 4px; }
     /* Loading Overlay */
     .loading-overlay {
       position: fixed;
@@ -118,14 +104,8 @@
       text-align: center;
       font-weight: bold;
     }
-    .error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-    .success {
-      background-color: #d4edda;
-      color: #155724;
-    }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .success { background-color: #d4edda; color: #155724; }
     /* Thumbnail Style */
     .thumbnail {
       width: 80px;
@@ -202,30 +182,16 @@
       align-items: center;
       z-index: 4000;
     }
-    #settingsBar label {
-      font-size: 0.9em;
-    }
+    #settingsBar label { font-size: 0.9em; }
     /* Dark Mode Overrides */
     body.dark-mode {
       background-color: #333;
       color: #ddd;
     }
-    body.dark-mode header {
-      background-color: #222;
-      color: #fff;
-    }
-    body.dark-mode main, body.dark-mode section {
-      background: #444;
-      color: #ddd;
-    }
-    body.dark-mode input, body.dark-mode select {
-      background: #555;
-      color: #ddd;
-      border: 1px solid #777;
-    }
-    body.dark-mode .loading-overlay {
-      background: rgba(0,0,0,0.7);
-    }
+    body.dark-mode header { background-color: #222; color: #fff; }
+    body.dark-mode main, body.dark-mode section { background: #444; color: #ddd; }
+    body.dark-mode input, body.dark-mode select { background: #555; color: #ddd; border: 1px solid #777; }
+    body.dark-mode .loading-overlay { background: rgba(0,0,0,0.7); }
     /* Responsive Design */
     @media (max-width: 768px) {
       header h1 { font-size: 1.8em; }
@@ -340,33 +306,42 @@
     
     // Utility Functions
     function showLoading() {
-      document.getElementById('loadingOverlay').style.display = 'flex';
+      const loadingEl = document.getElementById('loadingOverlay');
+      if (loadingEl) loadingEl.style.display = 'flex';
     }
     function hideLoading() {
-      document.getElementById('loadingOverlay').style.display = 'none';
+      const loadingEl = document.getElementById('loadingOverlay');
+      if (loadingEl) loadingEl.style.display = 'none';
     }
     function showMessage(message, type = 'success') {
       const msgEl = document.getElementById('globalMessage');
-      msgEl.textContent = message;
-      msgEl.className = `message ${type}`;
-      msgEl.style.display = 'block';
-      setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+      if (msgEl) {
+        msgEl.textContent = message;
+        msgEl.className = `message ${type}`;
+        msgEl.style.display = 'block';
+        setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+      }
     }
     function showShortMessage(message, type = 'success') {
       const msgEl = document.getElementById('globalMessage');
-      msgEl.textContent = message;
-      msgEl.className = `message ${type}`;
-      msgEl.style.display = 'block';
-      setTimeout(() => { msgEl.style.display = 'none'; }, 2000);
+      if (msgEl) {
+        msgEl.textContent = message;
+        msgEl.className = `message ${type}`;
+        msgEl.style.display = 'block';
+        setTimeout(() => { msgEl.style.display = 'none'; }, 2000);
+      }
     }
     function showError(message) { showMessage(message, 'error'); }
     function showSuccess(message) { showMessage(message, 'success'); }
     
     // Section Toggling
     function showSection(sectionId) {
-      document.getElementById('viewLogs').classList.add('hidden');
-      document.getElementById('searchCriminal').classList.add('hidden');
-      document.getElementById(sectionId).classList.remove('hidden');
+      const viewLogsEl = document.getElementById('viewLogs');
+      const searchCriminalEl = document.getElementById('searchCriminal');
+      if (viewLogsEl) viewLogsEl.classList.add('hidden');
+      if (searchCriminalEl) searchCriminalEl.classList.add('hidden');
+      const section = document.getElementById(sectionId);
+      if (section) section.classList.remove('hidden');
     }
     
     // ----------------- Realtime Detection Logs Section -----------------
@@ -377,7 +352,7 @@
     
     async function fetchLogs() {
       const viewLogsSection = document.getElementById('viewLogs');
-      if (viewLogsSection.classList.contains('hidden')) return;
+      if (!viewLogsSection || viewLogsSection.classList.contains('hidden')) return;
     
       try {
         showLoading();
@@ -393,12 +368,12 @@
         }
     
         // Check for new detections
-        if (logs.length > 0) {
+        if (logs && logs.length > 0) {
           const newestId = logs[0].id;
           if (lastDetectionId > 0 && newestId > lastDetectionId) {
             showShortMessage("New detection alert!", "error");
             if (navigator.vibrate) navigator.vibrate(200);
-            if (document.getElementById('toggleNotifications').checked) {
+            if (document.getElementById('toggleNotifications') && document.getElementById('toggleNotifications').checked) {
               if (Notification.permission === "granted") {
                 new Notification("Detection Alert", { body: "Warning: New detection alert!" });
               } else if (Notification.permission !== "denied") {
@@ -409,7 +384,7 @@
                 });
               }
             }
-            if (document.getElementById('toggleRedAlert').checked) {
+            if (document.getElementById('toggleRedAlert') && document.getElementById('toggleRedAlert').checked) {
               showDetectionAlert("Warning: New detection alert!");
             }
           }
@@ -426,6 +401,7 @@
     
     function renderLogsTable(logs) {
       const tbody = document.querySelector('#logsTable tbody');
+      if (!tbody) return;
       tbody.innerHTML = '';
       
       if (!logs || logs.length === 0) {
@@ -490,11 +466,11 @@
       }
     }
     
-    // Auto-refresh logs every 5 seconds only when "viewLogs" is visible
+    // Auto-refresh logs every 5 seconds only when "viewLogs" section is visible
     function startLogsAutoRefresh() {
       if (logsIntervalID) clearInterval(logsIntervalID);
       logsIntervalID = setInterval(() => {
-        if (!document.getElementById('viewLogs').classList.contains('hidden')) {
+        if (document.getElementById('viewLogs') && !document.getElementById('viewLogs').classList.contains('hidden')) {
           fetchLogs();
         }
       }, 5000);
@@ -506,7 +482,9 @@
     /* ---------- Detection Alert Functionality ---------- */
     function showDetectionAlert(message) {
       const overlay = document.getElementById('alertOverlay');
-      document.getElementById('alertMessage').textContent = message;
+      if (!overlay) return;
+      const alertMsg = document.getElementById('alertMessage');
+      if (alertMsg) alertMsg.textContent = message;
       overlay.style.display = 'flex';
       
       setTimeout(() => {
@@ -514,34 +492,189 @@
       }, 2000);
     }
     
-    document.getElementById('alertOk').addEventListener('click', function() {
-      document.getElementById('alertOverlay').style.display = 'none';
-    });
-    
-    // For testing: simulate detection alert
-    document.getElementById('simulateDetection').addEventListener('click', function() {
-      showDetectionAlert("Warning: New detection alert!");
-    });
-    
-    /* ---------- Toggle Settings ---------- */
-    document.getElementById('toggleNotifications').addEventListener('change', function() {
-      // Toggle is automatically read when needed.
-    });
-    document.getElementById('toggleRedAlert').addEventListener('change', function() {
-      // Toggle is automatically read when needed.
-    });
-    document.getElementById('toggleDarkMode').addEventListener('change', function() {
-      if (this.checked) {
-        document.body.classList.add('dark-mode');
-      } else {
-        document.body.classList.remove('dark-mode');
+    document.addEventListener('DOMContentLoaded', () => {
+      const alertOkBtn = document.getElementById('alertOk');
+      if (alertOkBtn) {
+        alertOkBtn.addEventListener('click', function() {
+          document.getElementById('alertOverlay').style.display = 'none';
+        });
+      }
+      
+      const simulateDetectionEl = document.getElementById('simulateDetection');
+      if (simulateDetectionEl) {
+        simulateDetectionEl.addEventListener('click', function() {
+          showDetectionAlert("Warning: New detection alert!");
+        });
+      }
+      
+      // Start auto-refresh if viewLogs section exists
+      if (document.getElementById('viewLogs')) {
+        startLogsAutoRefresh();
       }
     });
     
-    /* ---------- Start Auto-Refresh ---------- */
-    document.addEventListener('DOMContentLoaded', () => {
-      startLogsAutoRefresh();
-    });
+    /* ---------- Search Criminal Section ---------- */
+    const searchCriminalForm = document.getElementById('searchCriminalForm');
+    if (searchCriminalForm) {
+      searchCriminalForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const field = document.getElementById('criminalSearchField').value;
+        const value = document.getElementById('criminalSearchInput').value.trim();
+        if (!value) {
+          showError("Please enter a search value.");
+          return;
+        }
+        showLoading();
+        try {
+          let query = supabaseClient.from('criminal').select('*');
+          if (field === 'cid') query = query.eq('cid', value);
+          else query = query.ilike(field, `%${value}%`);
+          const { data, error } = await query;
+          if (error) {
+            showError("Error searching criminals: " + error.message);
+            return;
+          }
+          renderSearchResults(data);
+        } catch (err) {
+          showError("Error searching criminals: " + err.message);
+        } finally {
+          hideLoading();
+        }
+      });
+    }
+    
+    function renderSearchResults(criminals) {
+      const table = document.getElementById('criminalTable');
+      if (!table) return;
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      if (!criminals || criminals.length === 0) {
+        thead.innerHTML = '<tr><th>No criminals found.</th></tr>';
+        return;
+      }
+      // Headers: CID, Name, Thumbnail, Action
+      const headerRow = document.createElement('tr');
+      ['CID', 'Name', 'Thumbnail', 'Action'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      
+      criminals.forEach(crim => {
+        const tr = document.createElement('tr');
+        const tdCID = document.createElement('td');
+        tdCID.textContent = crim.cid;
+        tr.appendChild(tdCID);
+        
+        const tdName = document.createElement('td');
+        tdName.textContent = crim.name;
+        tr.appendChild(tdName);
+        
+        const tdThumb = document.createElement('td');
+        const img = document.createElement('img');
+        img.src = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${crim.cid}_1.jpg`;
+        img.alt = 'Thumbnail';
+        img.classList.add('thumbnail');
+        tdThumb.appendChild(img);
+        tr.appendChild(tdThumb);
+        
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = 'View Details';
+        btn.onclick = () => viewCriminalDetails(crim.cid);
+        tdAction.appendChild(btn);
+        tr.appendChild(tdAction);
+        
+        tbody.appendChild(tr);
+      });
+    }
+    
+    /* ---------- View Criminal Full Details ---------- */
+    async function viewCriminalDetails(cid) {
+      showLoading();
+      try {
+        const { data: criminal, error: crimError } = await supabaseClient
+          .from('criminal')
+          .select('*')
+          .eq('cid', cid)
+          .single();
+        if (crimError) {
+          showError("Error fetching criminal details: " + crimError.message);
+          return;
+        }
+        const { data: crimes, error: crimeError } = await supabaseClient
+          .from('crime')
+          .select('*')
+          .eq('cid', cid);
+          
+        let detailsHTML = `<h3>Criminal Details</h3>
+          <p><strong>CID:</strong> ${criminal.cid}</p>
+          <p><strong>Name:</strong> ${criminal.name}</p>
+          <p><strong>Age:</strong> ${criminal.age}</p>
+          <p><strong>Aadhar:</strong> ${criminal.aadhar}</p>
+          <p><strong>Phone:</strong> ${criminal.phone}</p>
+          <p><strong>Gender:</strong> ${criminal.gender}</p>
+          <p><strong>Address:</strong> ${criminal.address}</p>
+          <p><strong>Reason:</strong> ${criminal.reason}</p>`;
+          
+        if (crimeError || !crimes || crimes.length === 0) {
+          detailsHTML += `<h4>Crime Details</h4><p>No crime records available.</p>`;
+        } else {
+          detailsHTML += `<h4>Crime Details</h4>`;
+          crimes.forEach(crime => {
+            detailsHTML += `
+              <p>
+                <strong>Title:</strong> ${crime.title}<br>
+                <strong>Detail:</strong> ${crime.detail}<br>
+                <strong>Date:</strong> ${crime.date}<br>
+                <strong>Description:</strong> ${crime.description}
+              </p>`;
+          });
+        }
+        detailsHTML += `<h4>Photos</h4>`;
+        for (let i = 1; i <= 5; i++) {
+          const photoUrl = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${cid}_${i}.jpg`;
+          detailsHTML += `<img src="${photoUrl}" alt="Photo ${i}" class="thumbnail" style="margin-right:0.5em;">`;
+        }
+        
+        let modal = document.getElementById('detailsModal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'detailsModal';
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.width = '100%';
+          modal.style.height = '100%';
+          modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+          modal.style.display = 'flex';
+          modal.style.justifyContent = 'center';
+          modal.style.alignItems = 'center';
+          modal.style.zIndex = '2000';
+          document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+          <div>
+            ${detailsHTML}
+            <br>
+            <button onclick="closeDetailsModal()">Close</button>
+          </div>
+        `;
+        modal.style.display = 'flex';
+      } catch (err) {
+        showError("Error loading criminal details: " + err.message);
+      } finally {
+        hideLoading();
+      }
+    }
+    
+    function closeDetailsModal() {
+      const modal = document.getElementById('detailsModal');
+      if (modal) modal.style.display = 'none';
+    }
     
     /* ---------- Logout Function ---------- */
     async function logout() {
@@ -572,6 +705,27 @@
       hideLoading();
       window.location.href = 'index.html';
     }
+    
+    /* ---------- Start Auto-Refresh ---------- */
+    document.addEventListener('DOMContentLoaded', () => {
+      if (document.getElementById('viewLogs')) {
+        startLogsAutoRefresh();
+      }
+      
+      const alertOkBtn = document.getElementById('alertOk');
+      if (alertOkBtn) {
+        alertOkBtn.addEventListener('click', function() {
+          document.getElementById('alertOverlay').style.display = 'none';
+        });
+      }
+      
+      const simulateDetectionEl = document.getElementById('simulateDetection');
+      if (simulateDetectionEl) {
+        simulateDetectionEl.addEventListener('click', function() {
+          showDetectionAlert("Warning: New detection alert!");
+        });
+      }
+    });
   </script>
 </body>
 </html>
