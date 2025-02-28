@@ -1,3 +1,4 @@
+/*
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -265,6 +266,523 @@
       }
       document.getElementById('changeSpinner').style.display = 'none';
     });
+   
   </script>
+   */
+  <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Security Dashboard - 3rd EYE</title>
+  <!-- Include Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    /* Basic Styles */
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    header { background-color: #333; color: white; padding: 1em; }
+    header h1 { display: inline-block; margin: 0; }
+    nav { display: inline-block; margin-left: 2em; }
+    nav button { margin-right: 1em; padding: 0.5em 1em; }
+    main { padding: 1em; }
+    section { margin-bottom: 2em; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 0.5em; text-align: left; }
+    .form-group { margin-bottom: 1em; }
+    label { display: block; margin-bottom: 0.5em; }
+    input, select { width: 100%; padding: 0.5em; }
+    
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #333;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    /* Global Messages */
+    .message {
+      padding: 0.5em;
+      margin: 0.5em 0;
+      border-radius: 4px;
+      display: none;
+    }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .success { background-color: #d4edda; color: #155724; }
+
+    /* Thumbnail Style */
+    .thumbnail { width: 80px; height: 80px; object-fit: cover; }
+    
+    /* Paging Buttons */
+    .paging-buttons { display: flex; justify-content: space-between; }
+    
+    /* Modal Styles */
+    #detailsModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+    #detailsModal > div {
+      background: white;
+      padding: 1em;
+      max-height: 90%;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+  <!-- Global Message Container -->
+  <div id="globalMessage" class="message"></div>
+  
+  <header>
+    <h1>Security Dashboard - 3rd EYE</h1>
+    <nav>
+      <button onclick="showSection('viewLogs')">View Realtime Detection Logs</button>
+      <button onclick="showSection('searchCriminal')">Search Criminal</button>
+      <button onclick="logout()">Logout</button>
+    </nav>
+  </header>
+  
+  <main>
+    <!-- Realtime Detection Logs Section -->
+    <section id="viewLogs">
+      <h2>Realtime Detection Logs</h2>
+      <table id="logsTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>CID</th>
+            <th>Name</th>
+            <th>Thumbnail</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="paging-buttons">
+        <button onclick="prevPage()">Previous</button>
+        <button onclick="nextPage()">Next</button>
+      </div>
+    </section>
+    
+    <!-- Search Criminal Section -->
+    <section id="searchCriminal" class="hidden">
+      <h2>Search Criminal</h2>
+      <form id="searchCriminalForm">
+        <div class="form-group">
+          <label for="criminalSearchField">Search By:</label>
+          <select id="criminalSearchField">
+            <option value="cid">CID</option>
+            <option value="name">Name</option>
+            <option value="aadhar">Aadhar</option>
+            <option value="phone">Phone</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="criminalSearchInput">Search Value:</label>
+          <input type="text" id="criminalSearchInput" required>
+        </div>
+        <button type="submit">Search</button>
+      </form>
+      <div id="criminalResults" style="margin-top:1em;">
+        <table id="criminalTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  
+  <!-- Modal for Full Criminal Details -->
+  <div id="detailsModal">
+    <!-- Content is injected dynamically -->
+  </div>
+  
+  <script>
+    // Supabase credentials and client initialization
+    const SUPABASE_URL = 'https://jxsurwtcxvznuqlgnxis.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4c3Vyd3RjeHZ6bnVxbGdueGlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk2NDA3MjIsImV4cCI6MjA1NTIxNjcyMn0.vSYd0BZK3OgbPvxT1n0uwc_o0xyTuVp1IqdiBtdTdQA';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    // Utility Functions
+    function showLoading() {
+      document.getElementById('loadingOverlay').style.display = 'flex';
+    }
+    function hideLoading() {
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }
+    function showMessage(message, type = 'success') {
+      const msgEl = document.getElementById('globalMessage');
+      msgEl.textContent = message;
+      msgEl.className = `message ${type}`;
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+    }
+    function showShortMessage(message, type = 'success') {
+      const msgEl = document.getElementById('globalMessage');
+      msgEl.textContent = message;
+      msgEl.className = `message ${type}`;
+      msgEl.style.display = 'block';
+      setTimeout(() => { msgEl.style.display = 'none'; }, 2000);
+    }
+    function showError(message) { showMessage(message, 'error'); }
+    function showSuccess(message) { showMessage(message, 'success'); }
+    
+    // Section Toggling
+    function showSection(sectionId) {
+      document.getElementById('viewLogs').classList.add('hidden');
+      document.getElementById('searchCriminal').classList.add('hidden');
+      document.getElementById(sectionId).classList.remove('hidden');
+    }
+    
+    // ----------------- Realtime Detection Logs Section -----------------
+    let currentPage = 1;
+    const logsPerPage = 10;
+    let lastDetectionId = 0;
+    let logsIntervalID = null;
+    
+    async function fetchLogs() {
+      const viewLogsSection = document.getElementById('viewLogs');
+      if (viewLogsSection.classList.contains('hidden')) return;
+    
+      try {
+        showLoading();
+        const { data: logs, error } = await supabaseClient
+          .from('cr_found')
+          .select('id,detection_timestamp,cid,name')
+          .order('detection_timestamp', { ascending: false })
+          .range((currentPage - 1) * logsPerPage, currentPage * logsPerPage - 1);
+    
+        if (error) {
+          showError("Error fetching logs: " + error.message);
+          return;
+        }
+    
+        // Check for new detections
+        if (logs.length > 0) {
+          const newestId = logs[0].id;
+          if (lastDetectionId > 0 && newestId > lastDetectionId) {
+            showShortMessage("New detection alert!", "success");
+            if (navigator.vibrate) navigator.vibrate(200);
+          }
+          lastDetectionId = newestId;
+        }
+    
+        renderLogsTable(logs);
+      } catch (err) {
+        showError("Error loading logs: " + err.message);
+      } finally {
+        hideLoading();
+      }
+    }
+    
+    function renderLogsTable(logs) {
+      const tbody = document.querySelector('#logsTable tbody');
+      tbody.innerHTML = '';
+      
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">No detection records found</td></tr>';
+        return;
+      }
+    
+      logs.forEach(log => {
+        const tr = document.createElement('tr');
+        
+        // Detection Time
+        const tdTime = document.createElement('td');
+        tdTime.textContent = new Date(log.detection_timestamp).toLocaleString();
+        
+        // CID
+        const tdCID = document.createElement('td');
+        tdCID.textContent = log.cid;
+        
+        // Name
+        const tdName = document.createElement('td');
+        tdName.textContent = log.name;
+        
+        // Thumbnail
+        const tdThumb = document.createElement('td');
+        const img = document.createElement('img');
+        img.src = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${log.cid}_1.jpg`;
+        img.alt = 'Thumbnail';
+        img.classList.add('thumbnail');
+        img.onerror = function() {
+          this.src = '';
+          this.classList.add('fallback');
+          this.textContent = 'No Image';
+        };
+        
+        // Action: View Details button
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = 'View Details';
+        btn.onclick = () => viewCriminalDetails(log.cid);
+        
+        tr.appendChild(tdTime);
+        tr.appendChild(tdCID);
+        tr.appendChild(tdName);
+        tdThumb.appendChild(img);
+        tr.appendChild(tdThumb);
+        tdAction.appendChild(btn);
+        tr.appendChild(tdAction);
+        
+        tbody.appendChild(tr);
+      });
+    }
+    
+    function nextPage() {
+      currentPage++;
+      fetchLogs();
+    }
+    
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        fetchLogs();
+      }
+    }
+    
+    // Auto-refresh logs every 3 seconds only when "viewLogs" section is visible
+    function startLogsAutoRefresh() {
+      if (logsIntervalID) clearInterval(logsIntervalID);
+      logsIntervalID = setInterval(() => {
+        if (!document.getElementById('viewLogs').classList.contains('hidden')) {
+          fetchLogs();
+        }
+      }, 5000);
+    }
+    function stopLogsAutoRefresh() {
+      if (logsIntervalID) clearInterval(logsIntervalID);
+    }
+    
+    // ----------------- Search Criminal Section -----------------
+    document.getElementById('searchCriminalForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const field = document.getElementById('criminalSearchField').value;
+      const value = document.getElementById('criminalSearchInput').value.trim();
+      if (!value) {
+        showError("Please enter a search value.");
+        return;
+      }
+      showLoading();
+      try {
+        let query = supabaseClient.from('criminal').select('*');
+        if (field === 'cid') query = query.eq('cid', value);
+        else query = query.ilike(field, `%${value}%`);
+        const { data, error } = await query;
+        if (error) {
+          showError("Error searching criminals: " + error.message);
+          return;
+        }
+        renderSearchResults(data);
+      } catch (err) {
+        showError("Error searching criminals: " + err.message);
+      } finally {
+        hideLoading();
+      }
+    });
+    
+    function renderSearchResults(criminals) {
+      const table = document.getElementById('criminalTable');
+      const thead = table.querySelector('thead');
+      const tbody = table.querySelector('tbody');
+      thead.innerHTML = '';
+      tbody.innerHTML = '';
+      if (!criminals || criminals.length === 0) {
+        thead.innerHTML = '<tr><th>No criminals found.</th></tr>';
+        return;
+      }
+      // Headers: CID, Name, Thumbnail, Action
+      const headerRow = document.createElement('tr');
+      ['CID', 'Name', 'Thumbnail', 'Action'].forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      
+      criminals.forEach(crim => {
+        const tr = document.createElement('tr');
+        const tdCID = document.createElement('td');
+        tdCID.textContent = crim.cid;
+        tr.appendChild(tdCID);
+        
+        const tdName = document.createElement('td');
+        tdName.textContent = crim.name;
+        tr.appendChild(tdName);
+        
+        const tdThumb = document.createElement('td');
+        const img = document.createElement('img');
+        img.src = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${crim.cid}_1.jpg`;
+        img.alt = 'Thumbnail';
+        img.classList.add('thumbnail');
+        tdThumb.appendChild(img);
+        tr.appendChild(tdThumb);
+        
+        const tdAction = document.createElement('td');
+        const btn = document.createElement('button');
+        btn.textContent = 'View Details';
+        btn.onclick = () => viewCriminalDetails(crim.cid);
+        tdAction.appendChild(btn);
+        tr.appendChild(tdAction);
+        
+        tbody.appendChild(tr);
+      });
+    }
+    
+    // ----------------- View Criminal Full Details -----------------
+    async function viewCriminalDetails(cid) {
+      showLoading();
+      try {
+        // Fetch criminal details
+        const { data: criminal, error: crimError } = await supabaseClient
+          .from('criminal')
+          .select('*')
+          .eq('cid', cid)
+          .single();
+        if (crimError) {
+          showError("Error fetching criminal details: " + crimError.message);
+          return;
+        }
+        // Fetch crime details (if available)
+        const { data: crimes, error: crimeError } = await supabaseClient
+          .from('crime')
+          .select('*')
+          .eq('cid', cid);
+          
+        let detailsHTML = `<h3>Criminal Details</h3>
+          <p><strong>CID:</strong> ${criminal.cid}</p>
+          <p><strong>Name:</strong> ${criminal.name}</p>
+          <p><strong>Age:</strong> ${criminal.age}</p>
+          <p><strong>Aadhar:</strong> ${criminal.aadhar}</p>
+          <p><strong>Phone:</strong> ${criminal.phone}</p>
+          <p><strong>Gender:</strong> ${criminal.gender}</p>
+          <p><strong>Address:</strong> ${criminal.address}</p>
+          <p><strong>Reason:</strong> ${criminal.reason}</p>`;
+          
+        if (crimeError || !crimes || crimes.length === 0) {
+          detailsHTML += `<h4>Crime Details</h4><p>No crime details available.</p>`;
+        } else {
+          detailsHTML += `<h4>Crime Details</h4>`;
+          crimes.forEach(crime => {
+            detailsHTML += `
+              <p>
+                <strong>Title:</strong> ${crime.title}<br>
+                <strong>Detail:</strong> ${crime.detail}<br>
+                <strong>Date:</strong> ${crime.date}<br>
+                <strong>Description:</strong> ${crime.description}
+              </p>`;
+          });
+        }
+        detailsHTML += `<h4>Photos</h4>`;
+        for (let i = 1; i <= 5; i++) {
+          const photoUrl = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${cid}_${i}.jpg`;
+          detailsHTML += `<img src="${photoUrl}" alt="Photo ${i}" class="thumbnail" style="margin-right:0.5em;">`;
+        }
+        
+        let modal = document.getElementById('detailsModal');
+        if (!modal) {
+          modal = document.createElement('div');
+          modal.id = 'detailsModal';
+          modal.style.position = 'fixed';
+          modal.style.top = '0';
+          modal.style.left = '0';
+          modal.style.width = '100%';
+          modal.style.height = '100%';
+          modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+          modal.style.display = 'flex';
+          modal.style.justifyContent = 'center';
+          modal.style.alignItems = 'center';
+          modal.style.zIndex = '2000';
+          document.body.appendChild(modal);
+        }
+        modal.innerHTML = `
+          <div>
+            ${detailsHTML}
+            <br>
+            <button onclick="closeDetailsModal()">Close</button>
+          </div>
+        `;
+        modal.style.display = 'flex';
+        
+      } catch (err) {
+        showError("Error loading criminal details: " + err.message);
+      } finally {
+        hideLoading();
+      }
+    }
+    
+    function closeDetailsModal() {
+      const modal = document.getElementById('detailsModal');
+      if (modal) modal.style.display = 'none';
+    }
+    
+    // ----------------- Logout Function -----------------
+    async function logout() {
+      if (!confirm("Are you sure you want to logout?")) {
+        return;
+      }
+      
+      showLoading(); // Show spinner
+      
+      const userid = localStorage.getItem("userid");
+      if (userid) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('user_log')
+            .insert({
+              userid: userid,
+              logout_time: new Date().toISOString(),
+              status: 'logged out'
+            });
+          
+          if (error) {
+            console.error("Error inserting logout log:", error);
+          } else {
+            console.log("Logout log inserted:", data);
+          }
+        } catch (err) {
+          console.error("Error during logout:", err);
+        }
+      }
+      
+      hideLoading(); // Hide spinner
+      window.location.href = 'index.html';
+    }
+    
+    
+    
+    // Start auto-refreshing logs every 3 seconds when "viewLogs" section is visible
+    document.addEventListener('DOMContentLoaded', () => {
+      startLogsAutoRefresh();
+    });
+    </script>
+</body>
+</html>
+
 </body>
 </html>
