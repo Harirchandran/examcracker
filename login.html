@@ -1,34 +1,97 @@
-
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Security Dashboard - 3rd EYE</title>
-  <!-- Include Supabase JS Client -->
+  <!-- Include Supabase JS Client and Font Awesome for spinner icons -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     /* Basic Styles */
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    header { background-color: #333; color: white; padding: 1em; }
-    header h1 { display: inline-block; margin: 0; }
-    nav { display: inline-block; margin-left: 2em; }
-    nav button { margin-right: 1em; padding: 0.5em 1em; }
-    main { padding: 1em; }
-    section { margin-bottom: 2em; }
-    .hidden { display: none; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
-    table, th, td { border: 1px solid #ccc; }
-    th, td { padding: 0.5em; text-align: left; }
-    .form-group { margin-bottom: 1em; }
-    label { display: block; margin-bottom: 0.5em; }
-    input, select { width: 100%; padding: 0.5em; }
-    
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 1em;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.8em;
+    }
+    nav {
+      margin-top: 0.5em;
+    }
+    nav button {
+      margin-right: 1em;
+      padding: 0.5em 1em;
+      font-size: 0.9em;
+      border: none;
+      background-color: #555;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    nav button:hover {
+      background-color: #777;
+    }
+    main {
+      padding: 1em;
+    }
+    section {
+      margin-bottom: 2em;
+      padding: 1em;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .hidden {
+      display: none;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1em;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 0.5em;
+      text-align: left;
+      font-size: 0.9em;
+    }
+    .form-group {
+      margin-bottom: 1em;
+    }
+    label {
+      display: block;
+      margin-bottom: 0.5em;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5em;
+      font-size: 1em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
     /* Loading Overlay */
     .loading-overlay {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: rgba(255, 255, 255, 0.8);
+      background: rgba(255,255,255,0.8);
       display: none;
       justify-content: center;
       align-items: center;
@@ -42,24 +105,39 @@
       height: 50px;
       animation: spin 1s linear infinite;
     }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
-    /* Global Messages */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    /* Global Message Container */
     .message {
       padding: 0.5em;
-      margin: 0.5em 0;
+      margin: 0.5em;
       border-radius: 4px;
       display: none;
+      text-align: center;
+      font-weight: bold;
     }
-    .error { background-color: #f8d7da; color: #721c24; }
-    .success { background-color: #d4edda; color: #155724; }
-
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
     /* Thumbnail Style */
-    .thumbnail { width: 80px; height: 80px; object-fit: cover; }
-    
+    .thumbnail {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+    }
     /* Paging Buttons */
-    .paging-buttons { display: flex; justify-content: space-between; }
-    
+    .paging-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1em;
+    }
     /* Modal Styles */
     #detailsModal {
       position: fixed;
@@ -77,6 +155,84 @@
       padding: 1em;
       max-height: 90%;
       overflow-y: auto;
+      border-radius: 8px;
+    }
+    /* Alert Overlay for Detection */
+    #alertOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+    }
+    #alertOverlay .alert-box {
+      background-color: #e74c3c;
+      color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      max-width: 80%;
+      font-size: 1em;
+    }
+    #alertOverlay .alert-box button {
+      margin-top: 15px;
+      background-color: #fff;
+      color: #e74c3c;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    /* Settings Bar at Bottom */
+    #settingsBar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fff;
+      border-top: 1px solid #ccc;
+      padding: 10px;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 4000;
+    }
+    #settingsBar label {
+      font-size: 0.9em;
+    }
+    /* Dark Mode Overrides */
+    body.dark-mode {
+      background-color: #333;
+      color: #ddd;
+    }
+    body.dark-mode header {
+      background-color: #222;
+      color: #fff;
+    }
+    body.dark-mode main, body.dark-mode section {
+      background: #444;
+      color: #ddd;
+    }
+    body.dark-mode input, body.dark-mode select {
+      background: #555;
+      color: #ddd;
+      border: 1px solid #777;
+    }
+    body.dark-mode .loading-overlay {
+      background: rgba(0,0,0,0.7);
+    }
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      header h1 { font-size: 1.8em; }
+      nav button { font-size: 0.8em; padding: 0.5em; }
+      main, section { padding: 1em; margin: 1em; }
+      table, th, td { font-size: 0.8em; }
+      input, select { font-size: 0.9em; }
     }
   </style>
 </head>
@@ -152,6 +308,30 @@
     <!-- Content is injected dynamically -->
   </div>
   
+  <!-- Alert Overlay for Detection -->
+  <div id="alertOverlay">
+    <div class="alert-box">
+      <p id="alertMessage">Warning: New detection alert!</p>
+      <button id="alertOk">OK</button>
+    </div>
+  </div>
+  
+  <!-- Settings Bar at Bottom -->
+  <div id="settingsBar">
+    <label>
+      <input type="checkbox" id="toggleNotifications" checked>
+      Notifications
+    </label>
+    <label>
+      <input type="checkbox" id="toggleRedAlert" checked>
+      Red Alert
+    </label>
+    <label>
+      <input type="checkbox" id="toggleDarkMode">
+      Dark Mode
+    </label>
+  </div>
+  
   <script>
     // Supabase credentials and client initialization
     const SUPABASE_URL = 'https://jxsurwtcxvznuqlgnxis.supabase.co';
@@ -216,8 +396,22 @@
         if (logs.length > 0) {
           const newestId = logs[0].id;
           if (lastDetectionId > 0 && newestId > lastDetectionId) {
-            showShortMessage("New detection alert!", "success");
+            showShortMessage("New detection alert!", "error");
             if (navigator.vibrate) navigator.vibrate(200);
+            if (document.getElementById('toggleNotifications').checked) {
+              if (Notification.permission === "granted") {
+                new Notification("Detection Alert", { body: "Warning: New detection alert!" });
+              } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                  if (permission === "granted") {
+                    new Notification("Detection Alert", { body: "Warning: New detection alert!" });
+                  }
+                });
+              }
+            }
+            if (document.getElementById('toggleRedAlert').checked) {
+              showDetectionAlert("Warning: New detection alert!");
+            }
           }
           lastDetectionId = newestId;
         }
@@ -296,7 +490,7 @@
       }
     }
     
-    // Auto-refresh logs every 3 seconds only when "viewLogs" section is visible
+    // Auto-refresh logs every 5 seconds only when "viewLogs" is visible
     function startLogsAutoRefresh() {
       if (logsIntervalID) clearInterval(logsIntervalID);
       logsIntervalID = setInterval(() => {
@@ -309,176 +503,51 @@
       if (logsIntervalID) clearInterval(logsIntervalID);
     }
     
-    // ----------------- Search Criminal Section -----------------
-    document.getElementById('searchCriminalForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const field = document.getElementById('criminalSearchField').value;
-      const value = document.getElementById('criminalSearchInput').value.trim();
-      if (!value) {
-        showError("Please enter a search value.");
-        return;
-      }
-      showLoading();
-      try {
-        let query = supabaseClient.from('criminal').select('*');
-        if (field === 'cid') query = query.eq('cid', value);
-        else query = query.ilike(field, `%${value}%`);
-        const { data, error } = await query;
-        if (error) {
-          showError("Error searching criminals: " + error.message);
-          return;
-        }
-        renderSearchResults(data);
-      } catch (err) {
-        showError("Error searching criminals: " + err.message);
-      } finally {
-        hideLoading();
+    /* ---------- Detection Alert Functionality ---------- */
+    function showDetectionAlert(message) {
+      const overlay = document.getElementById('alertOverlay');
+      document.getElementById('alertMessage').textContent = message;
+      overlay.style.display = 'flex';
+      
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 2000);
+    }
+    
+    document.getElementById('alertOk').addEventListener('click', function() {
+      document.getElementById('alertOverlay').style.display = 'none';
+    });
+    
+    // For testing: simulate detection alert
+    document.getElementById('simulateDetection').addEventListener('click', function() {
+      showDetectionAlert("Warning: New detection alert!");
+    });
+    
+    /* ---------- Toggle Settings ---------- */
+    document.getElementById('toggleNotifications').addEventListener('change', function() {
+      // Toggle is automatically read when needed.
+    });
+    document.getElementById('toggleRedAlert').addEventListener('change', function() {
+      // Toggle is automatically read when needed.
+    });
+    document.getElementById('toggleDarkMode').addEventListener('change', function() {
+      if (this.checked) {
+        document.body.classList.add('dark-mode');
+      } else {
+        document.body.classList.remove('dark-mode');
       }
     });
     
-    function renderSearchResults(criminals) {
-      const table = document.getElementById('criminalTable');
-      const thead = table.querySelector('thead');
-      const tbody = table.querySelector('tbody');
-      thead.innerHTML = '';
-      tbody.innerHTML = '';
-      if (!criminals || criminals.length === 0) {
-        thead.innerHTML = '<tr><th>No criminals found.</th></tr>';
-        return;
-      }
-      // Headers: CID, Name, Thumbnail, Action
-      const headerRow = document.createElement('tr');
-      ['CID', 'Name', 'Thumbnail', 'Action'].forEach(text => {
-        const th = document.createElement('th');
-        th.textContent = text;
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-      
-      criminals.forEach(crim => {
-        const tr = document.createElement('tr');
-        const tdCID = document.createElement('td');
-        tdCID.textContent = crim.cid;
-        tr.appendChild(tdCID);
-        
-        const tdName = document.createElement('td');
-        tdName.textContent = crim.name;
-        tr.appendChild(tdName);
-        
-        const tdThumb = document.createElement('td');
-        const img = document.createElement('img');
-        img.src = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${crim.cid}_1.jpg`;
-        img.alt = 'Thumbnail';
-        img.classList.add('thumbnail');
-        tdThumb.appendChild(img);
-        tr.appendChild(tdThumb);
-        
-        const tdAction = document.createElement('td');
-        const btn = document.createElement('button');
-        btn.textContent = 'View Details';
-        btn.onclick = () => viewCriminalDetails(crim.cid);
-        tdAction.appendChild(btn);
-        tr.appendChild(tdAction);
-        
-        tbody.appendChild(tr);
-      });
-    }
+    /* ---------- Start Auto-Refresh ---------- */
+    document.addEventListener('DOMContentLoaded', () => {
+      startLogsAutoRefresh();
+    });
     
-    // ----------------- View Criminal Full Details -----------------
-    async function viewCriminalDetails(cid) {
-      showLoading();
-      try {
-        // Fetch criminal details
-        const { data: criminal, error: crimError } = await supabaseClient
-          .from('criminal')
-          .select('*')
-          .eq('cid', cid)
-          .single();
-        if (crimError) {
-          showError("Error fetching criminal details: " + crimError.message);
-          return;
-        }
-        // Fetch crime details (if available)
-        const { data: crimes, error: crimeError } = await supabaseClient
-          .from('crime')
-          .select('*')
-          .eq('cid', cid);
-          
-        let detailsHTML = `<h3>Criminal Details</h3>
-          <p><strong>CID:</strong> ${criminal.cid}</p>
-          <p><strong>Name:</strong> ${criminal.name}</p>
-          <p><strong>Age:</strong> ${criminal.age}</p>
-          <p><strong>Aadhar:</strong> ${criminal.aadhar}</p>
-          <p><strong>Phone:</strong> ${criminal.phone}</p>
-          <p><strong>Gender:</strong> ${criminal.gender}</p>
-          <p><strong>Address:</strong> ${criminal.address}</p>
-          <p><strong>Reason:</strong> ${criminal.reason}</p>`;
-          
-        if (crimeError || !crimes || crimes.length === 0) {
-          detailsHTML += `<h4>Crime Details</h4><p>No crime details available.</p>`;
-        } else {
-          detailsHTML += `<h4>Crime Details</h4>`;
-          crimes.forEach(crime => {
-            detailsHTML += `
-              <p>
-                <strong>Title:</strong> ${crime.title}<br>
-                <strong>Detail:</strong> ${crime.detail}<br>
-                <strong>Date:</strong> ${crime.date}<br>
-                <strong>Description:</strong> ${crime.description}
-              </p>`;
-          });
-        }
-        detailsHTML += `<h4>Photos</h4>`;
-        for (let i = 1; i <= 5; i++) {
-          const photoUrl = `${SUPABASE_URL}/storage/v1/object/public/criminal_photos/${cid}_${i}.jpg`;
-          detailsHTML += `<img src="${photoUrl}" alt="Photo ${i}" class="thumbnail" style="margin-right:0.5em;">`;
-        }
-        
-        let modal = document.getElementById('detailsModal');
-        if (!modal) {
-          modal = document.createElement('div');
-          modal.id = 'detailsModal';
-          modal.style.position = 'fixed';
-          modal.style.top = '0';
-          modal.style.left = '0';
-          modal.style.width = '100%';
-          modal.style.height = '100%';
-          modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
-          modal.style.display = 'flex';
-          modal.style.justifyContent = 'center';
-          modal.style.alignItems = 'center';
-          modal.style.zIndex = '2000';
-          document.body.appendChild(modal);
-        }
-        modal.innerHTML = `
-          <div>
-            ${detailsHTML}
-            <br>
-            <button onclick="closeDetailsModal()">Close</button>
-          </div>
-        `;
-        modal.style.display = 'flex';
-        
-      } catch (err) {
-        showError("Error loading criminal details: " + err.message);
-      } finally {
-        hideLoading();
-      }
-    }
-    
-    function closeDetailsModal() {
-      const modal = document.getElementById('detailsModal');
-      if (modal) modal.style.display = 'none';
-    }
-    
-    // ----------------- Logout Function -----------------
+    /* ---------- Logout Function ---------- */
     async function logout() {
-      if (!confirm("Are you sure you want to logout?")) {
-        return;
-      }
+      if (!confirm("Are you sure you want to logout?")) return;
       
-      showLoading(); // Show spinner
-      
+      showLoading();
       const userid = localStorage.getItem("userid");
       if (userid) {
         try {
@@ -500,19 +569,9 @@
         }
       }
       
-      hideLoading(); // Hide spinner
+      hideLoading();
       window.location.href = 'index.html';
     }
-    
-    
-    
-    // Start auto-refreshing logs every 3 seconds when "viewLogs" section is visible
-    document.addEventListener('DOMContentLoaded', () => {
-      startLogsAutoRefresh();
-    });
-    </script>
-</body>
-</html>
-
+  </script>
 </body>
 </html>
