@@ -8,198 +8,350 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    /* Basic Styles */
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background-color: #f9f9f9;
-      color: #333;
-      transition: background-color 0.3s, color 0.3s;
-    }
-    header {
-      background-color: #333;
-      color: white;
-      padding: 1em;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-    header h1 {
-      margin: 0;
-      font-size: 1.8em;
-    }
-    nav {
-      margin-top: 0.5em;
-    }
-    nav button {
-      margin-right: 1em;
-      padding: 0.5em 1em;
-      font-size: 0.9em;
-      border: none;
-      background-color: #555;
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    nav button:hover {
-      background-color: #777;
-    }
-    main {
-      padding: 1em;
-    }
-    section {
-      margin-bottom: 2em;
-      padding: 1em;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .hidden { display: none; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 1em;
-    }
-    table, th, td {
-      border: 1px solid #ccc;
-    }
-    th, td {
-      padding: 0.5em;
-      text-align: left;
-      font-size: 0.9em;
-    }
-    .form-group { margin-bottom: 1em; }
-    label { display: block; margin-bottom: 0.5em; font-weight: bold; }
-    input, select { width: 100%; padding: 0.5em; font-size: 1em; border: 1px solid #ccc; border-radius: 4px; }
-    /* Loading Overlay */
-    .loading-overlay {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(255,255,255,0.8);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
-    .spinner {
-      border: 5px solid #f3f3f3;
-      border-top: 5px solid #333;
-      border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    /* Global Message Container */
-    .message {
-      padding: 0.5em;
-      margin: 0.5em;
-      border-radius: 4px;
-      display: none;
-      text-align: center;
-      font-weight: bold;
-    }
-    .error { background-color: #f8d7da; color: #721c24; }
-    .success { background-color: #d4edda; color: #155724; }
-    /* Thumbnail Style */
-    .thumbnail {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-    }
-    /* Paging Buttons */
-    .paging-buttons {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 1em;
-    }
-    /* Modal Styles */
-    #detailsModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-    }
-    #detailsModal > div {
-      background: white;
-      padding: 1em;
-      max-height: 90%;
-      overflow-y: auto;
-      border-radius: 8px;
-    }
-    /* Alert Overlay for Detection */
-    #alertOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0,0,0,0.5);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 3000;
-    }
-    #alertOverlay .alert-box {
-      background-color: #e74c3c;
-      color: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      text-align: center;
-      max-width: 80%;
-      font-size: 1em;
-    }
-    #alertOverlay .alert-box button {
-      margin-top: 15px;
-      background-color: #fff;
-      color: #e74c3c;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    /* Settings Bar at Bottom */
-    #settingsBar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: #fff;
-      border-top: 1px solid #ccc;
-      padding: 10px;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      z-index: 4000;
-    }
-    #settingsBar label { font-size: 0.9em; }
-    /* Dark Mode Overrides */
-    body.dark-mode {
-      background-color: #333;
-      color: #ddd;
-    }
-    body.dark-mode header { background-color: #222; color: #fff; }
-    body.dark-mode main, body.dark-mode section { background: #444; color: #ddd; }
-    body.dark-mode input, body.dark-mode select { background: #555; color: #ddd; border: 1px solid #777; }
-    body.dark-mode .loading-overlay { background: rgba(0,0,0,0.7); }
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      header h1 { font-size: 1.8em; }
-      nav button { font-size: 0.8em; padding: 0.5em; }
-      main, section { padding: 1em; margin: 1em; }
-      table, th, td { font-size: 0.8em; }
-      input, select { font-size: 0.9em; }
-    }
+/* General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Header and Navigation */
+header {
+  background: #004080;
+  color: white;
+  padding: 1em;
+  text-align: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+header h1 {
+  font-size: 1.6em;
+  margin-bottom: 0.5em;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+nav button {
+  padding: 0.6em 1em;
+  font-size: 1em;
+  border: none;
+  background: #0055aa;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+nav button:hover {
+  background: #003366;
+}
+
+/* Main Content */
+main {
+  padding: 1em;
+  max-width: 1200px;
+  margin: auto;
+}
+
+section {
+  background: #fff;
+  padding: 1.2em;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2em;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+}
+
+table, th, td {
+  border: 1px solid #ddd;
+}
+
+th, td {
+  padding: 0.8em;
+  text-align: left;
+  font-size: 0.9em;
+}
+
+th {
+  background: #004080;
+  color: white;
+}
+
+/* Form Elements */
+.form-group {
+  margin-bottom: 1em;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.3em;
+}
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  font-size: 1em;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+/* Buttons */
+button {
+  padding: 0.8em;
+  background: #004080;
+  color: white;
+  font-size: 1em;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+button:hover {
+  background: #003366;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.spinner {
+  border: 5px solid #ddd;
+  border-top: 5px solid #004080;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Messages */
+.message {
+  padding: 1em;
+  margin-top: 1em;
+  border-radius: 6px;
+  text-align: center;
+  display: none;
+}
+
+.success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.error {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* Thumbnails */
+.thumbnail {
+  width: 70px;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+/* Pagination */
+.paging-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1em;
+}
+
+/* Modal */
+#detailsModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+#detailsModal > div {
+  background: white;
+  padding: 1.5em;
+  max-height: 90%;
+  overflow-y: auto;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+}
+
+/* Alert Overlay */
+#alertOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.alert-box {
+  background: #e74c3c;
+  color: white;
+  padding: 1.2em;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 1em;
+}
+
+.alert-box button {
+  margin-top: 15px;
+  background: #fff;
+  color: #e74c3c;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Settings Bar */
+#settingsBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  border-top: 1px solid #ccc;
+  padding: 10px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 4000;
+}
+
+#settingsBar label {
+  font-size: 0.9em;
+}
+
+/* Dark Mode */
+body.dark-mode {
+  background-color: #222;
+  color: #ddd;
+}
+
+body.dark-mode header {
+  background-color: #000;
+  color: #fff;
+}
+
+body.dark-mode main, 
+body.dark-mode section {
+  background: #333;
+  color: #ddd;
+}
+
+body.dark-mode input, 
+body.dark-mode select {
+  background: #444;
+  color: #ddd;
+  border: 1px solid #666;
+}
+
+body.dark-mode .loading-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 1.4em;
+  }
+
+  nav {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  nav button {
+    font-size: 0.9em;
+    padding: 0.5em;
+  }
+
+  main, section {
+    padding: 1em;
+    margin: 0.5em;
+  }
+
+  table, th, td {
+    font-size: 0.85em;
+    padding: 0.6em;
+  }
+
+  .thumbnail {
+    width: 60px;
+    height: 60px;
+  }
+
+  button {
+    font-size: 0.9em;
+    padding: 0.6em;
+  }
+
+  .alert-box {
+    width: 90%;
+    font-size: 0.9em;
+  }
+
+  #settingsBar {
+    flex-direction: column;
+    padding: 8px;
+  }
+}
+
   </style>
 </head>
 <body>
