@@ -347,8 +347,9 @@ body.dark-mode .loading-overlay {
   }
 
   #settingsBar {
-    flex-direction: column;
+    flex-direction: raw;
     padding: 8px;
+    
   }
 }
 
@@ -438,16 +439,13 @@ body.dark-mode .loading-overlay {
   <div id="settingsBar">
     <label>
       <input type="checkbox" id="toggleNotifications" checked>
-      Notifications
+      System Notifications
     </label>
     <label>
       <input type="checkbox" id="toggleRedAlert" checked>
       Red Alert
     </label>
-    <label>
-      <input type="checkbox" id="toggleDarkMode">
-      Dark Mode
-    </label>
+    
   </div>
   
   <script>
@@ -625,7 +623,7 @@ body.dark-mode .loading-overlay {
         if (document.getElementById('viewLogs') && !document.getElementById('viewLogs').classList.contains('hidden')) {
           fetchLogs();
         }
-      }, 5000);
+      }, 10000);
     }
     function stopLogsAutoRefresh() {
       if (logsIntervalID) clearInterval(logsIntervalID);
@@ -641,7 +639,7 @@ body.dark-mode .loading-overlay {
       
       setTimeout(() => {
         overlay.style.display = 'none';
-      }, 2000);
+      }, 5000);
     }
     
     document.addEventListener('DOMContentLoaded', () => {
